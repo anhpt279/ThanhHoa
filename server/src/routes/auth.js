@@ -2,15 +2,12 @@ import { Router } from 'express';
 import jwt from 'jsonwebtoken';
 import User from '../models/User.js';
 import { authRequired } from '../middleware/auth.js';
-import { connectDB } from '../config/db.js';
-
 const router = Router();
 
 router.post('/register', async (req, res) => {
   const log = req.log;
   try {
     log.info('register_start');
-    await connectDB(req.reqId);
 
     const { username, password, displayName, phone, facebook, zaloName } = req.body;
 
@@ -72,10 +69,6 @@ router.post('/login', async (req, res) => {
 
   try {
     log.info('login_start', { hasBody: Boolean(req.body) });
-
-    const tDb = Date.now();
-    await connectDB(req.reqId);
-    log.info('login_db_ready', { ms: Date.now() - tDb });
 
     const { username, password } = req.body;
     if (!username || !password) {

@@ -23,14 +23,30 @@ function needsMemoryDb(uri) {
   return uri.includes('<db_password>');
 }
 
+function formatMongoError(err) {
+  const msg = err?.message || '';
+  if (msg.includes('bad auth') || msg.includes('authentication failed')) {
+    return (
+      'MongoDB từ chối đăng nhập (bad auth). ' +
+      'Kiểm tra lại username/password trong MONGODB_URI trên Vercel (hoặc server/.env). ' +
+      'Nếu mật khẩu có ký tự đặc biệt (@, #, %, /...) phải URL-encode. ' +
+      'Trên Atlas: Database Access → user anhpt279_db_user → Edit → Reset Password → copy URI mới.'
+    );
+  }
+  if (msg.includes('ENOTFOUND') || msg.includes('querySrv')) {
+    return 'Không kết nối được cluster MongoDB. Kiểm tra MONGODB_URI và mạng.';
+  }
+  return msg;
+}
+
 function getMongooseOptions() {
   return {
     bufferCommands: false,
     maxPoolSize: 1,
     minPoolSize: 0,
-    serverSelectionTimeoutMS: 5000,
-    connectTimeoutMS: 5000,
-    socketTimeoutMS: 10000,
+    serverSelectionTimeoutMS: 4000,
+    connectTimeoutMS: 4000,
+    socketTimeoutMS: 8000,
     family: 4,
   };
 }
@@ -109,16 +125,20 @@ export async function connectDB(parentReqId) {
       return instance;
     })
     .catch((err) => {
+      const friendly = formatMongoError(err);
       dbLog('mongoose_connect_fail', {
         reqId,
         ms: Date.now() - t0,
         message: err.message,
+        friendly,
         name: err.name,
         code: err.code,
       });
       cache.promise = null;
       cache.conn = null;
-      throw err;
+      const e = new Error(friendly);
+      e.cause = err;
+      throw e;
     });
 
   return cache.promise;

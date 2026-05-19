@@ -142,6 +142,17 @@ Mỗi request in JSON một dòng, ví dụ:
 | `login_bcrypt_done` | So khớp mật khẩu xong |
 | `login_success` | Login thành công |
 
+### 6. FUNCTION_INVOCATION_TIMEOUT (hkg1 / sin1)
+
+| Nguyên nhân | Cách xử lý |
+|-------------|------------|
+| Gói **Hobby** giới hạn **10 giây**/request | Nâng **Pro** (60s) hoặc tối ưu Atlas |
+| `bad auth` / connect MongoDB chậm | Sửa `MONGODB_URI` (xem mục Atlas ở trên) |
+| Atlas cluster xa region Vercel | Tạo cluster **Singapore** (`ap-southeast-1`); `vercel.json` đã set `regions: ["sin1"]` |
+| Cold start Express + Mongoose | Sau khi DB đúng, lần 2 thường nhanh hơn (instance warm) |
+
+**Thứ tự test:** `GET /api/health` trước → rồi mới login.
+
 **Treo ở bước nào → lỗi ở đó:**
 - Dừng ở `mongoose_connect_start` → Atlas URI / IP whitelist / region
 - `mongoose_connect_ok` nhưng chậm `login_find_user` → index DB / query
