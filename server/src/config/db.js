@@ -1,7 +1,23 @@
 import mongoose from 'mongoose';
 
+/**
+ * Cache MongoDB cho Serverless (Vercel).
+ * Dùng global — mỗi lambda instance giữ 1 kết nối khi còn "warm".
+ * @see https://github.com/vercel/next.js/blob/canary/examples/with-mongodb-mongoose
+ */
+const globalForMongoose = globalThis;
+
+if (!globalForMongoose.mongoose) {
+  globalForMongoose.mongoose = { conn: null, promise: null };
+}
+
+const cached = globalForMongoose.mongoose;
+
 let memoryServer = null;
-const globalCache = globalThis;
+
+function isConnected() {
+  return mongoose.connection.readyState === 1;
+}
 
 function needsMemoryDb(uri) {
   if (process.env.VERCEL === '1') return false;
@@ -11,24 +27,26 @@ function needsMemoryDb(uri) {
 }
 
 function getMongooseOptions() {
-  if (process.env.VERCEL !== '1') return {};
-
-  return {
+  const base = {
     bufferCommands: false,
     maxPoolSize: 1,
-    minPoolSize: 0,
-    serverSelectionTimeoutMS: 8000,
-    connectTimeoutMS: 8000,
-    socketTimeoutMS: 15000,
   };
-}
 
-export async function connectDB() {
-  if (globalCache.mongoose?.conn?.readyState === 1) {
-    return globalCache.mongoose.conn;
+  if (process.env.VERCEL === '1') {
+    return {
+      ...base,
+      minPoolSize: 0,
+      serverSelectionTimeoutMS: 8000,
+      connectTimeoutMS: 8000,
+      socketTimeoutMS: 15000,
+    };
   }
 
-  let uri = process.env.MONGODB_URI;
+  return base;
+}
+
+async function resolveMongoUri() {
+  const uri = process.env.MONGODB_URI;
 
   if (process.env.VERCEL === '1') {
     if (!uri || uri.includes('<db_password>')) {
@@ -36,39 +54,62 @@ export async function connectDB() {
         'Thiếu MONGODB_URI trên Vercel. Vào Project Settings → Environment Variables và thêm connection string MongoDB Atlas.'
       );
     }
-  } else if (needsMemoryDb(uri)) {
+    return uri;
+  }
+
+  if (needsMemoryDb(uri)) {
     console.warn('[DB] Dùng MongoDB in-memory (dev). Để dùng Atlas: sửa MONGODB_URI trong server/.env');
     const { MongoMemoryServer } = await import('mongodb-memory-server');
-    memoryServer = await MongoMemoryServer.create();
-    uri = memoryServer.getUri('hoi_choi_hoa');
+    if (!memoryServer) {
+      memoryServer = await MongoMemoryServer.create();
+    }
+    return memoryServer.getUri('hoi_choi_hoa');
   }
 
-  if (!globalCache.mongoose) {
-    globalCache.mongoose = { conn: null, promise: null };
+  return uri;
+}
+
+async function createConnection() {
+  const uri = await resolveMongoUri();
+  await mongoose.connect(uri, getMongooseOptions());
+  console.log('MongoDB connected');
+  return mongoose;
+}
+
+export async function connectDB() {
+  if (cached.conn && isConnected()) {
+    return cached.conn;
   }
 
-  if (!globalCache.mongoose.promise) {
-    globalCache.mongoose.promise = mongoose
-      .connect(uri, getMongooseOptions())
-      .then((conn) => {
-        console.log('MongoDB connected');
-        return conn;
-      })
-      .catch((err) => {
-        globalCache.mongoose.promise = null;
-        throw err;
-      });
+  if (cached.promise) {
+    return cached.promise;
   }
 
-  globalCache.mongoose.conn = await globalCache.mongoose.promise;
-  return globalCache.mongoose.conn;
+  if (!isConnected()) {
+    cached.conn = null;
+  }
+
+  cached.promise = createConnection()
+    .then((instance) => {
+      cached.conn = instance;
+      return instance;
+    })
+    .catch((err) => {
+      cached.promise = null;
+      cached.conn = null;
+      throw err;
+    });
+
+  return cached.promise;
 }
 
 export async function disconnectDB() {
-  if (globalCache.mongoose?.conn) {
+  if (isConnected()) {
     await mongoose.disconnect();
-    globalCache.mongoose = { conn: null, promise: null };
   }
+  cached.conn = null;
+  cached.promise = null;
+
   if (memoryServer) {
     await memoryServer.stop();
     memoryServer = null;
