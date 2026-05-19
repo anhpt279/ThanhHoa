@@ -30,3 +30,14 @@
   justify-content: center;
   margin-top: 0.5rem;
 }
+
+.auth-card-wide {
+  max-width: 440px;
+}
+
+.auth-switch {
+  text-align: center;
+  margin-top: 1.25rem;
+  font-size: 0.9rem;
+  color: var(--muted);
+}

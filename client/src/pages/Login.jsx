@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useNavigate, Navigate } from 'react-router-dom';
+import { Link, useNavigate, Navigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import './Login.css';
 
@@ -57,6 +57,9 @@ export default function Login() {
             {loading ? 'Đang đăng nhập...' : 'Đăng nhập'}
           </button>
         </form>
+        <p className="auth-switch">
+          Chưa có tài khoản? <Link to="/dang-ky">Đăng ký</Link>
+        </p>
       </div>
     </div>
   );
