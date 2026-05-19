@@ -87,3 +87,46 @@ npm run dev
 | CRUD | `/api/user-flowers` | Hoa của member |
 | GET | `/api/search/members?q=` | Tìm thành viên |
 | GET | `/api/search/flowers?q=` | Ai đang có loại hoa |
+
+## Deploy lên Vercel (full-stack)
+
+Repo đã có `vercel.json` + `api/index.js` (Express serverless) + build React từ `client/`.
+
+### 1. Import project trên [Vercel](https://vercel.com)
+
+- Connect GitHub repo `anhpt279/ThanhHoa`
+- **Root Directory:** để mặc định (root repo)
+- Vercel tự đọc `vercel.json` (không cần đổi Build Command)
+
+### 2. Environment Variables (bắt buộc)
+
+Trong **Project → Settings → Environment Variables**:
+
+| Biến | Giá trị |
+|------|---------|
+| `MONGODB_URI` | Connection string Atlas (thay mật khẩu thật) |
+| `JWT_SECRET` | Chuỗi bí mật dài, ngẫu nhiên |
+| `USE_MEMORY_DB` | `false` |
+
+> Atlas → **Network Access** → Allow `0.0.0.0/0` (Vercel dùng IP động).
+
+### 3. Seed dữ liệu lần đầu (chạy trên máy local)
+
+```bash
+# Trong server/.env đặt MONGODB_URI trỏ Atlas (giống Vercel)
+npm run seed
+```
+
+Tạo admin `admin` / `admin123` trên database production.
+
+### 4. Kiểm tra sau deploy
+
+- `https://your-app.vercel.app/api/health` → `{"ok":true}`
+- Đăng nhập tại `https://your-app.vercel.app/login`
+
+### Cấu trúc deploy
+
+```
+/              → React (client/dist)
+/api/*         → Express serverless (api/index.js)
+```

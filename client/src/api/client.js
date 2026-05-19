@@ -1,4 +1,5 @@
-const API = '/api';
+/** Trên Vercel: cùng domain → /api. Local dev: Vite proxy. Override: VITE_API_URL */
+const API = (import.meta.env.VITE_API_URL || '').replace(/\/$/, '') || '/api';
 
 function getToken() {
   return localStorage.getItem('token');
