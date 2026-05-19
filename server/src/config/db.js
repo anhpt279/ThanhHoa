@@ -1,7 +1,6 @@
 import mongoose from 'mongoose';
 
 let memoryServer = null;
-
 const globalCache = globalThis;
 
 function needsMemoryDb(uri) {
@@ -11,8 +10,21 @@ function needsMemoryDb(uri) {
   return uri.includes('<db_password>');
 }
 
+function getMongooseOptions() {
+  if (process.env.VERCEL !== '1') return {};
+
+  return {
+    bufferCommands: false,
+    maxPoolSize: 1,
+    minPoolSize: 0,
+    serverSelectionTimeoutMS: 8000,
+    connectTimeoutMS: 8000,
+    socketTimeoutMS: 15000,
+  };
+}
+
 export async function connectDB() {
-  if (globalCache.mongoose?.conn) {
+  if (globalCache.mongoose?.conn?.readyState === 1) {
     return globalCache.mongoose.conn;
   }
 
@@ -36,10 +48,16 @@ export async function connectDB() {
   }
 
   if (!globalCache.mongoose.promise) {
-    globalCache.mongoose.promise = mongoose.connect(uri).then((conn) => {
-      console.log('MongoDB connected');
-      return conn;
-    });
+    globalCache.mongoose.promise = mongoose
+      .connect(uri, getMongooseOptions())
+      .then((conn) => {
+        console.log('MongoDB connected');
+        return conn;
+      })
+      .catch((err) => {
+        globalCache.mongoose.promise = null;
+        throw err;
+      });
   }
 
   globalCache.mongoose.conn = await globalCache.mongoose.promise;

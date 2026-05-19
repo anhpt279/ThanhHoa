@@ -109,6 +109,8 @@ Trong **Project → Settings → Environment Variables**:
 | `USE_MEMORY_DB` | `false` |
 
 > Atlas → **Network Access** → Allow `0.0.0.0/0` (Vercel dùng IP động).
+>
+> **Quan trọng (tránh timeout):** Trên Atlas chọn cluster region gần Vercel (vd. `ap-southeast-1` Singapore nếu deploy region Hong Kong). Connection string phải có mật khẩu thật, không còn `<db_password>`.
 
 ### 3. Seed dữ liệu lần đầu (chạy trên máy local)
 
