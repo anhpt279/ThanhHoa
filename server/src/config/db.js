@@ -1,6 +1,6 @@
 import mongoose from 'mongoose';
+import { newReqId } from '../utils/perfLog.js';
 
-/** Cache kết nối — dùng global để tái sử dụng trong serverless */
 if (!globalThis.mongooseCache) {
   globalThis.mongooseCache = { conn: null, promise: null };
 }
@@ -8,8 +8,11 @@ const cache = globalThis.mongooseCache;
 
 let memoryServer = null;
 
+function dbLog(step, extra = {}) {
+  console.log(JSON.stringify({ level: 'info', scope: 'db', step, ...extra }));
+}
+
 function isConnected() {
-  // Kiểm tra cache và mongoose connection state
   return cache.conn && mongoose.connection.readyState === 1;
 }
 
@@ -21,94 +24,113 @@ function needsMemoryDb(uri) {
 }
 
 function getMongooseOptions() {
-  // GIẢM TIMEOUT để không bị treo quá lâu
   return {
     bufferCommands: false,
     maxPoolSize: 1,
     minPoolSize: 0,
-    serverSelectionTimeoutMS: 5000,  // 5 giây - nếu lâu hơn là fail nhanh
-    connectTimeoutMS: 5000,           // 5 giây
-    socketTimeoutMS: 10000,           // 10 giây
-    family: 4,                        // Ưu tiên IPv4 (tránh DNS issue)
+    serverSelectionTimeoutMS: 5000,
+    connectTimeoutMS: 5000,
+    socketTimeoutMS: 10000,
+    family: 4,
   };
 }
 
 async function resolveMongoUri() {
-  let uri = process.env.MONGODB_URI;
+  const uri = process.env.MONGODB_URI;
 
-  // TRÊN VERCEL: bắt buộc phải có MONGODB_URI
   if (process.env.VERCEL === '1') {
     if (!uri || uri.includes('<db_password>') || uri.includes('db_password')) {
-      throw new Error(
-        '[DB] MONGODB_URI không hợp lệ hoặc chưa được cấu hình đúng trên Vercel Environment Variables.'
-      );
+      throw new Error('MONGODB_URI không hợp lệ trên Vercel Environment Variables');
     }
-    console.log('[DB] Using MongoDB Atlas on Vercel');
+    dbLog('resolve_uri', { target: 'atlas', host: uri.match(/@([^/]+)/)?.[1] || 'unknown' });
     return uri;
   }
 
-  // LOCAL DEVELOPMENT
   if (needsMemoryDb(uri)) {
-    console.warn('[DB] Dùng MongoDB in-memory (dev). Để dùng Atlas: sửa MONGODB_URI trong .env');
+    dbLog('resolve_uri', { target: 'memory' });
     const { MongoMemoryServer } = await import('mongodb-memory-server');
     if (!memoryServer) {
+      const t = Date.now();
       memoryServer = await MongoMemoryServer.create();
+      dbLog('memory_server_ready', { ms: Date.now() - t });
     }
     return memoryServer.getUri('hoi_choi_hoa');
   }
 
+  dbLog('resolve_uri', { target: 'atlas_local' });
   return uri;
 }
 
-export async function connectDB() {
-  console.log('[DB] connectDB() called, checking connection...');
-  
-  // Nếu đã có kết nối thì dùng lại
+export async function connectDB(parentReqId) {
+  const reqId = parentReqId || newReqId();
+  const t0 = Date.now();
+
+  dbLog('connect_start', {
+    reqId,
+    vercel: process.env.VERCEL === '1',
+    readyState: mongoose.connection.readyState,
+    hasCacheConn: Boolean(cache.conn),
+    hasCachePromise: Boolean(cache.promise),
+  });
+
   if (isConnected()) {
-    console.log('[DB] Reusing existing connection');
+    dbLog('connect_reuse', { reqId, ms: Date.now() - t0 });
     return cache.conn;
   }
 
-  // Reset cache nếu connection bị broken
   if (cache.conn && mongoose.connection.readyState !== 1) {
-    console.log('[DB] Connection broken, resetting cache');
+    dbLog('connect_reset_broken', { reqId, readyState: mongoose.connection.readyState });
     cache.conn = null;
     cache.promise = null;
   }
 
-  // Nếu chưa có promise kết nối, tạo mới
-  if (!cache.promise) {
-    const uri = await resolveMongoUri();
-    console.log('[DB] Creating new connection to:', uri.substring(0, 50) + '...');
-    
-    const options = getMongooseOptions();
-    
-    cache.promise = mongoose
-      .connect(uri, options)
-      .then((instance) => {
-        console.log('[DB] ✅ Connected successfully to MongoDB!');
-        cache.conn = instance;
-        return instance;
-      })
-      .catch((err) => {
-        console.error('[DB] ❌ Connection failed:', err.message);
-        console.error('[DB] Full error:', err);
-        cache.promise = null;
-        cache.conn = null;
-        throw err;
-      });
-  } else {
-    console.log('[DB] Waiting for existing connection promise...');
+  if (cache.promise) {
+    dbLog('connect_await_promise', { reqId });
+    try {
+      const result = await cache.promise;
+      dbLog('connect_promise_ok', { reqId, ms: Date.now() - t0 });
+      return result;
+    } catch (err) {
+      dbLog('connect_promise_fail', { reqId, ms: Date.now() - t0, message: err.message });
+      throw err;
+    }
   }
 
-  try {
-    const result = await cache.promise;
-    console.log('[DB] Connection promise resolved');
-    return result;
-  } catch (error) {
-    console.error('[DB] Error awaiting connection promise:', error);
-    throw error;
-  }
+  const uri = await resolveMongoUri();
+  const options = getMongooseOptions();
+
+  dbLog('mongoose_connect_start', { reqId, ms: Date.now() - t0 });
+
+  cache.promise = mongoose
+    .connect(uri, options)
+    .then((instance) => {
+      dbLog('mongoose_connect_ok', { reqId, ms: Date.now() - t0, readyState: mongoose.connection.readyState });
+      cache.conn = instance;
+      return instance;
+    })
+    .catch((err) => {
+      dbLog('mongoose_connect_fail', {
+        reqId,
+        ms: Date.now() - t0,
+        message: err.message,
+        name: err.name,
+        code: err.code,
+      });
+      cache.promise = null;
+      cache.conn = null;
+      throw err;
+    });
+
+  return cache.promise;
+}
+
+export async function pingDB(parentReqId) {
+  const reqId = parentReqId || newReqId();
+  const t0 = Date.now();
+  await connectDB(reqId);
+  await mongoose.connection.db.admin().ping();
+  dbLog('ping_ok', { reqId, ms: Date.now() - t0 });
+  return { ok: true, ms: Date.now() - t0 };
 }
 
 export async function disconnectDB() {
@@ -117,7 +139,6 @@ export async function disconnectDB() {
   }
   cache.conn = null;
   cache.promise = null;
-
   if (memoryServer) {
     await memoryServer.stop();
     memoryServer = null;

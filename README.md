@@ -123,8 +123,31 @@ Tạo admin `admin` / `admin123` trên database production.
 
 ### 4. Kiểm tra sau deploy
 
-- `https://your-app.vercel.app/api/health` → `{"ok":true}`
+- `https://your-app.vercel.app/api/health` → `{"ok":true,"db":"connected","ms":...}`
 - Đăng nhập tại `https://your-app.vercel.app/login`
+
+### 5. Debug timeout / login chậm (Vercel Logs)
+
+Sau deploy, vào **Vercel → Project → Logs** (hoặc Deployment → Function Logs).
+
+Mỗi request in JSON một dòng, ví dụ:
+
+| `step` | Ý nghĩa |
+|--------|---------|
+| `vercel_invoke` | Function bắt đầu |
+| `connect_start` / `mongoose_connect_start` | Đang kết nối MongoDB |
+| `mongoose_connect_ok` | DB xong (xem `ms`) |
+| `login_db_ready` | Login: DB sẵn sàng |
+| `login_find_user_done` | Query user xong |
+| `login_bcrypt_done` | So khớp mật khẩu xong |
+| `login_success` | Login thành công |
+
+**Treo ở bước nào → lỗi ở đó:**
+- Dừng ở `mongoose_connect_start` → Atlas URI / IP whitelist / region
+- `mongoose_connect_ok` nhưng chậm `login_find_user` → index DB / query
+- `login_bcrypt_done` lâu → bình thường vài trăm ms
+
+Response lỗi có `reqId` — dùng `reqId` để tìm đúng dòng log.
 
 ### Cấu trúc deploy
 
