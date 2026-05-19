@@ -1,0 +1,92 @@
+import { useEffect, useState } from 'react';
+import { api } from '../api/client';
+
+export default function Flowers() {
+  const [flowers, setFlowers] = useState([]);
+  const [name, setName] = useState('');
+  const [editing, setEditing] = useState(null);
+  const [error, setError] = useState('');
+
+  const load = () => api('/flowers').then(setFlowers).catch(console.error);
+
+  useEffect(() => {
+    load();
+  }, []);
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setError('');
+    try {
+      if (editing) {
+        await api(`/flowers/${editing}`, { method: 'PUT', body: JSON.stringify({ flowerName: name }) });
+      } else {
+        await api('/flowers', { method: 'POST', body: JSON.stringify({ flowerName: name }) });
+      }
+      setName('');
+      setEditing(null);
+      load();
+    } catch (err) {
+      setError(err.message);
+    }
+  };
+
+  const handleEdit = (f) => {
+    setEditing(f._id);
+    setName(f.flowerName);
+  };
+
+  const handleDelete = async (id) => {
+    if (!confirm('Xóa loại hoa này?')) return;
+    await api(`/flowers/${id}`, { method: 'DELETE' });
+    load();
+  };
+
+  return (
+    <div>
+      <h1 className="page-title">Danh sách hoa</h1>
+      <p style={{ color: 'var(--muted)', marginBottom: '1rem' }}>
+        Danh mục master — thành viên chọn từ đây khi cập nhật hoa.
+      </p>
+
+      <form className="card" onSubmit={handleSubmit} style={{ marginBottom: '1.5rem', maxWidth: 480 }}>
+        <div className="form-group">
+          <label>{editing ? 'Sửa tên hoa' : 'Tên hoa mới'}</label>
+          <input value={name} onChange={(e) => setName(e.target.value)} required />
+        </div>
+        {error && <p className="error-msg">{error}</p>}
+        <div style={{ display: 'flex', gap: '0.5rem' }}>
+          <button type="submit" className="btn btn-primary">{editing ? 'Cập nhật' : 'Thêm'}</button>
+          {editing && (
+            <button type="button" className="btn btn-secondary" onClick={() => { setEditing(null); setName(''); }}>
+              Hủy
+            </button>
+          )}
+        </div>
+      </form>
+
+      <div className="card table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>STT</th>
+              <th>Tên hoa</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody>
+            {flowers.map((f, i) => (
+              <tr key={f._id}>
+                <td>{i + 1}</td>
+                <td>{f.flowerName}</td>
+                <td>
+                  <button type="button" className="btn btn-secondary btn-sm" onClick={() => handleEdit(f)}>Sửa</button>
+                  <button type="button" className="btn btn-danger btn-sm" onClick={() => handleDelete(f._id)}>Xóa</button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
