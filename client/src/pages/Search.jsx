@@ -1,6 +1,18 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { api } from '../api/client';
+
+const CACHE_TTL_MS = 60_000;
+
+function readCache(cache, key) {
+  const hit = cache.get(key);
+  if (hit && Date.now() - hit.at < CACHE_TTL_MS) return hit.data;
+  return null;
+}
+
+function writeCache(cache, key, data) {
+  cache.set(key, { data, at: Date.now() });
+}
 
 export default function Search() {
   const [searchParams] = useSearchParams();
@@ -10,25 +22,90 @@ export default function Search() {
   const [flowerQ, setFlowerQ] = useState(initialQ);
   const [members, setMembers] = useState([]);
   const [flowerResult, setFlowerResult] = useState(null);
+  const [memberLoading, setMemberLoading] = useState(false);
+  const [flowerLoading, setFlowerLoading] = useState(false);
+
+  const cacheRef = useRef(new Map());
+  const memberAbortRef = useRef(null);
+  const flowerAbortRef = useRef(null);
+
+  const fetchCached = async (path, { signal, setLoading, setData, empty }) => {
+    const cached = readCache(cacheRef.current, path);
+    if (cached !== null) {
+      setData(cached);
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const data = await api(path, { signal });
+      writeCache(cacheRef.current, path, data);
+      setData(data);
+    } catch (err) {
+      if (err.name === 'AbortError') return;
+      console.error(err);
+      setData(empty);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const searchMembers = async (e) => {
     e?.preventDefault();
-    if (!memberQ.trim()) return setMembers([]);
-    const data = await api(`/search/members?q=${encodeURIComponent(memberQ)}`);
-    setMembers(data);
+    memberAbortRef.current?.abort();
+    if (!memberQ.trim()) {
+      setMembers([]);
+      return;
+    }
+
+    const path = `/search/members?q=${encodeURIComponent(memberQ.trim())}`;
+    const controller = new AbortController();
+    memberAbortRef.current = controller;
+
+    await fetchCached(path, {
+      signal: controller.signal,
+      setLoading: setMemberLoading,
+      setData: setMembers,
+      empty: [],
+    });
   };
 
   const searchFlowers = async (e) => {
     e?.preventDefault();
-    if (!flowerQ.trim()) return setFlowerResult(null);
-    const data = await api(`/search/flowers?q=${encodeURIComponent(flowerQ)}`);
-    setFlowerResult(data);
+    flowerAbortRef.current?.abort();
+    if (!flowerQ.trim()) {
+      setFlowerResult(null);
+      return;
+    }
+
+    const path = `/search/flowers?q=${encodeURIComponent(flowerQ.trim())}`;
+    const controller = new AbortController();
+    flowerAbortRef.current = controller;
+
+    await fetchCached(path, {
+      signal: controller.signal,
+      setLoading: setFlowerLoading,
+      setData: setFlowerResult,
+      empty: null,
+    });
   };
 
   useEffect(() => {
-    if (initialQ.trim()) {
-      api(`/search/flowers?q=${encodeURIComponent(initialQ)}`).then(setFlowerResult).catch(console.error);
-    }
+    if (!initialQ.trim()) return;
+
+    flowerAbortRef.current?.abort();
+    const path = `/search/flowers?q=${encodeURIComponent(initialQ.trim())}`;
+    const controller = new AbortController();
+    flowerAbortRef.current = controller;
+
+    fetchCached(path, {
+      signal: controller.signal,
+      setLoading: setFlowerLoading,
+      setData: setFlowerResult,
+      empty: null,
+    });
+
+    return () => controller.abort();
   }, [initialQ]);
 
   return (
@@ -44,8 +121,15 @@ export default function Search() {
               value={memberQ}
               onChange={(e) => setMemberQ(e.target.value)}
             />
-            <button type="submit" className="btn btn-primary">Tìm</button>
+            <button type="submit" className="btn btn-primary" disabled={memberLoading}>
+              {memberLoading ? 'Đang tìm...' : 'Tìm'}
+            </button>
           </form>
+          {memberLoading && members.length === 0 && (
+            <p className="search-hint muted">
+              <span className="loading-spinner loading-spinner-inline" /> Đang tìm...
+            </p>
+          )}
           {members.length > 0 && (
             <ul className="result-list">
               {members.map((m) => (
@@ -66,8 +150,16 @@ export default function Search() {
               value={flowerQ}
               onChange={(e) => setFlowerQ(e.target.value)}
             />
-            <button type="submit" className="btn btn-primary">Tìm</button>
+            <button type="submit" className="btn btn-primary" disabled={flowerLoading}>
+              {flowerLoading ? 'Đang tìm...' : 'Tìm'}
+            </button>
           </form>
+
+          {flowerLoading && !flowerResult && (
+            <p className="search-hint muted">
+              <span className="loading-spinner loading-spinner-inline" /> Đang tìm...
+            </p>
+          )}
 
           {flowerResult && (
             <>

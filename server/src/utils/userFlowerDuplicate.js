@@ -1,8 +1,5 @@
 import UserFlower from '../models/UserFlower.js';
-
-function escapeRegex(s) {
-  return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-}
+import { escapeRegex } from './escapeRegex.js';
 
 export async function findDuplicateUserFlower({ userId, type, flowerId, customName, excludeId }) {
   const base = {
