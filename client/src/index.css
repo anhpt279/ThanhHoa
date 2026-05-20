@@ -439,6 +439,11 @@ td.actions .btn {
   font-size: 0.9rem;
 }
 
+.search-combobox-hint {
+  margin: 0 0 0.65rem;
+  font-size: 0.85rem;
+}
+
 @keyframes spin {
   to { transform: rotate(360deg); }
 }

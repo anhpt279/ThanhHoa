@@ -46,15 +46,32 @@ router.get('/members', async (req, res) => {
   }
 });
 
+async function resolveFlower({ q, flowerId }) {
+  if (flowerId) {
+    return Flower.findById(flowerId).select('flowerName').lean();
+  }
+  if (!q?.trim()) return null;
+
+  const term = q.trim();
+  const exact = await findFlowerByName(term);
+  if (exact) return exact;
+
+  return Flower.findOne({
+    flowerName: { $regex: escapeRegex(term), $options: 'i' },
+  })
+    .select('flowerName')
+    .sort({ flowerName: 1 })
+    .lean();
+}
+
 router.get('/flowers', async (req, res) => {
   try {
-    const { q } = req.query;
-    if (!q?.trim()) return res.json({ flower: null, holders: [] });
+    const { q, flowerId } = req.query;
+    if (!q?.trim() && !flowerId) return res.json({ flower: null, holders: [] });
 
     setSearchCache(res);
 
-    const term = q.trim();
-    const flower = await findFlowerByName(term);
+    const flower = await resolveFlower({ q, flowerId });
     if (!flower) {
       return res.json({
         flower: null,

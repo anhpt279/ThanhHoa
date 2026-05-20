@@ -1,6 +1,7 @@
-import { useState, useEffect, useRef } from 'react';
-import { Link, useSearchParams } from 'react-router-dom';
+import { useState, useEffect, useRef, useCallback } from 'react';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { api } from '../api/client';
+import AsyncCombobox from '../components/AsyncCombobox';
 
 const CACHE_TTL_MS = 60_000;
 
@@ -15,98 +16,90 @@ function writeCache(cache, key, data) {
 }
 
 export default function Search() {
+  const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const initialQ = searchParams.get('q') || '';
 
-  const [memberQ, setMemberQ] = useState('');
-  const [flowerQ, setFlowerQ] = useState(initialQ);
-  const [members, setMembers] = useState([]);
   const [flowerResult, setFlowerResult] = useState(null);
-  const [memberLoading, setMemberLoading] = useState(false);
   const [flowerLoading, setFlowerLoading] = useState(false);
+  const [selectedFlowerLabel, setSelectedFlowerLabel] = useState(initialQ);
+  const [selectedFlowerId, setSelectedFlowerId] = useState('');
 
   const cacheRef = useRef(new Map());
-  const memberAbortRef = useRef(null);
   const flowerAbortRef = useRef(null);
 
-  const fetchCached = async (path, { signal, setLoading, setData, empty }) => {
-    const cached = readCache(cacheRef.current, path);
-    if (cached !== null) {
-      setData(cached);
+  const fetchMembers = useCallback(async (q) => {
+    if (!q) return [];
+    return api(`/search/members?q=${encodeURIComponent(q)}`);
+  }, []);
+
+  const fetchFlowerOptions = useCallback(async (q) => {
+    const params = q ? `?q=${encodeURIComponent(q)}` : '';
+    return api(`/flowers${params}`);
+  }, []);
+
+  const loadFlowerHolders = useCallback(async (flower) => {
+    if (!flower) {
+      setFlowerResult(null);
+      setSelectedFlowerLabel('');
+      setSelectedFlowerId('');
       return;
     }
 
-    setLoading(true);
+    flowerAbortRef.current?.abort();
+    const path = `/search/flowers?flowerId=${encodeURIComponent(flower._id)}`;
+    const cached = readCache(cacheRef.current, path);
+    if (cached !== null) {
+      setFlowerResult(cached);
+      setSelectedFlowerLabel(flower.flowerName);
+      setSelectedFlowerId(flower._id);
+      return;
+    }
+
+    const controller = new AbortController();
+    flowerAbortRef.current = controller;
+    setFlowerLoading(true);
+
     try {
-      const data = await api(path, { signal });
+      const data = await api(path, { signal: controller.signal });
       writeCache(cacheRef.current, path, data);
-      setData(data);
+      setFlowerResult(data);
+      setSelectedFlowerLabel(flower.flowerName);
+      setSelectedFlowerId(flower._id);
     } catch (err) {
       if (err.name === 'AbortError') return;
       console.error(err);
-      setData(empty);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const searchMembers = async (e) => {
-    e?.preventDefault();
-    memberAbortRef.current?.abort();
-    if (!memberQ.trim()) {
-      setMembers([]);
-      return;
-    }
-
-    const path = `/search/members?q=${encodeURIComponent(memberQ.trim())}`;
-    const controller = new AbortController();
-    memberAbortRef.current = controller;
-
-    await fetchCached(path, {
-      signal: controller.signal,
-      setLoading: setMemberLoading,
-      setData: setMembers,
-      empty: [],
-    });
-  };
-
-  const searchFlowers = async (e) => {
-    e?.preventDefault();
-    flowerAbortRef.current?.abort();
-    if (!flowerQ.trim()) {
       setFlowerResult(null);
-      return;
+    } finally {
+      setFlowerLoading(false);
     }
-
-    const path = `/search/flowers?q=${encodeURIComponent(flowerQ.trim())}`;
-    const controller = new AbortController();
-    flowerAbortRef.current = controller;
-
-    await fetchCached(path, {
-      signal: controller.signal,
-      setLoading: setFlowerLoading,
-      setData: setFlowerResult,
-      empty: null,
-    });
-  };
+  }, []);
 
   useEffect(() => {
     if (!initialQ.trim()) return;
 
-    flowerAbortRef.current?.abort();
-    const path = `/search/flowers?q=${encodeURIComponent(initialQ.trim())}`;
-    const controller = new AbortController();
-    flowerAbortRef.current = controller;
+    let cancelled = false;
+    (async () => {
+      try {
+        const list = await api(`/flowers?q=${encodeURIComponent(initialQ.trim())}`);
+        if (!cancelled && list.length > 0) {
+          await loadFlowerHolders(list[0]);
+        } else if (!cancelled) {
+          setFlowerResult({
+            flower: null,
+            holders: [],
+            message: 'Không tìm thấy loại hoa trong danh mục',
+          });
+        }
+      } catch (err) {
+        console.error(err);
+      }
+    })();
 
-    fetchCached(path, {
-      signal: controller.signal,
-      setLoading: setFlowerLoading,
-      setData: setFlowerResult,
-      empty: null,
-    });
-
-    return () => controller.abort();
-  }, [initialQ]);
+    return () => {
+      cancelled = true;
+    };
+  }, [initialQ, loadFlowerHolders]);
 
   return (
     <div>
@@ -115,53 +108,53 @@ export default function Search() {
       <div className="grid-2 align-start">
         <div className="card">
           <h3 className="card-title">Tìm thành viên</h3>
-          <form onSubmit={searchMembers} className="search-row">
-            <input
-              placeholder="Nhập tên..."
-              value={memberQ}
-              onChange={(e) => setMemberQ(e.target.value)}
-            />
-            <button type="submit" className="btn btn-primary" disabled={memberLoading}>
-              {memberLoading ? 'Đang tìm...' : 'Tìm'}
-            </button>
-          </form>
-          {memberLoading && members.length === 0 && (
-            <p className="search-hint muted">
-              <span className="loading-spinner loading-spinner-inline" /> Đang tìm...
-            </p>
-          )}
-          {members.length > 0 && (
-            <ul className="result-list">
-              {members.map((m) => (
-                <li key={m._id}>
-                  <Link to={`/thanh-vien/${m._id}`}>{m.displayName}</Link>
-                  {m.phone && <span className="muted"> · {m.phone}</span>}
-                </li>
-              ))}
-            </ul>
-          )}
+          <p className="search-combobox-hint muted">Gõ tên — gợi ý gần đúng, chọn để mở hồ sơ</p>
+          <AsyncCombobox
+            fetchOptions={fetchMembers}
+            getOptionKey={(m) => m._id}
+            getOptionLabel={(m) => m.displayName}
+            renderOption={(m) => (
+              <>
+                {m.displayName}
+                {m.phone && <span className="muted"> · {m.phone}</span>}
+              </>
+            )}
+            onSelect={(member) => {
+              if (member) navigate(`/thanh-vien/${member._id}`);
+            }}
+            placeholder="Nhập tên thành viên..."
+            minChars={1}
+            emptyMessage="Không tìm thấy thành viên"
+            hintMessage="Nhập ít nhất 1 ký tự để tìm"
+            clearable
+          />
         </div>
 
         <div className="card">
           <h3 className="card-title">Tìm loại hoa (ai đang có?)</h3>
-          <form onSubmit={searchFlowers} className="search-row">
-            <input
-              placeholder="VD: Juliet"
-              value={flowerQ}
-              onChange={(e) => setFlowerQ(e.target.value)}
-            />
-            <button type="submit" className="btn btn-primary" disabled={flowerLoading}>
-              {flowerLoading ? 'Đang tìm...' : 'Tìm'}
-            </button>
-          </form>
+          <p className="search-combobox-hint muted">Gõ tên hoa — gợi ý gần đúng, chọn để xem ai đang có</p>
+          <AsyncCombobox
+            fetchOptions={fetchFlowerOptions}
+            getOptionKey={(f) => f._id}
+            getOptionLabel={(f) => f.flowerName}
+            onSelect={(flower) => loadFlowerHolders(flower)}
+            placeholder="VD: Juliet"
+            initialQuery={initialQ}
+            selectedLabel={selectedFlowerLabel}
+            valueId={selectedFlowerId}
+            minChars={0}
+            emptyMessage="Không tìm thấy loại hoa"
+            hintMessage="Gõ tên hoa để tìm"
+            clearable
+          />
 
-          {flowerLoading && !flowerResult && (
+          {flowerLoading && (
             <p className="search-hint muted">
-              <span className="loading-spinner loading-spinner-inline" /> Đang tìm...
+              <span className="loading-spinner loading-spinner-inline" /> Đang tải...
             </p>
           )}
 
-          {flowerResult && (
+          {flowerResult && !flowerLoading && (
             <>
               {!flowerResult.flower ? (
                 <p className="empty">{flowerResult.message || 'Không tìm thấy'}</p>

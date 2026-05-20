@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import Flower from '../models/Flower.js';
+import { escapeRegex } from '../utils/escapeRegex.js';
 import { authRequired, adminOnly } from '../middleware/auth.js';
 
 const router = Router();
@@ -9,8 +10,10 @@ router.use(authRequired);
 router.get('/', async (req, res) => {
   try {
     const { q } = req.query;
-    const filter = q ? { flowerName: { $regex: q, $options: 'i' } } : {};
-    const flowers = await Flower.find(filter).sort({ flowerName: 1 });
+    const filter = q?.trim()
+      ? { flowerName: { $regex: escapeRegex(q.trim()), $options: 'i' } }
+      : {};
+    const flowers = await Flower.find(filter).sort({ flowerName: 1 }).limit(30).lean();
     res.json(flowers);
   } catch (err) {
     res.status(500).json({ message: err.message });
