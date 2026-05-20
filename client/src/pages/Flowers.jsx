@@ -14,17 +14,32 @@ function findDuplicateFlower(name, flowers, excludeId) {
   );
 }
 
+const PAGE_SIZE = 10;
+
 export default function Flowers() {
   const [flowers, setFlowers] = useState([]);
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [total, setTotal] = useState(0);
   const [name, setName] = useState('');
   const [editing, setEditing] = useState(null);
   const [error, setError] = useState('');
 
-  const load = () => api('/flowers').then(setFlowers).catch(console.error);
+  const load = async (pageNum = page) => {
+    try {
+      const data = await api(`/flowers?page=${pageNum}&limit=${PAGE_SIZE}`);
+      setFlowers(data.items);
+      setPage(data.page);
+      setTotalPages(data.totalPages);
+      setTotal(data.total);
+    } catch (err) {
+      console.error(err);
+    }
+  };
 
   useEffect(() => {
-    load();
-  }, []);
+    load(page);
+  }, [page]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -49,7 +64,7 @@ export default function Flowers() {
       }
       setName('');
       setEditing(null);
-      load();
+      await load(page);
     } catch (err) {
       setError(err.message);
     }
@@ -64,7 +79,12 @@ export default function Flowers() {
   const handleDelete = async (id) => {
     if (!confirm('Xóa loại hoa này?')) return;
     await api(`/flowers/${id}`, { method: 'DELETE' });
-    load();
+    const nextPage = flowers.length === 1 && page > 1 ? page - 1 : page;
+    if (nextPage !== page) {
+      setPage(nextPage);
+    } else {
+      await load(page);
+    }
   };
 
   return (
@@ -102,7 +122,7 @@ export default function Flowers() {
           <tbody>
             {flowers.map((f, i) => (
               <tr key={f._id}>
-                <td>{i + 1}</td>
+                <td>{(page - 1) * PAGE_SIZE + i + 1}</td>
                 <td>{f.flowerName}</td>
                 <td className="actions">
                   <button type="button" className="btn btn-secondary btn-sm" onClick={() => handleEdit(f)}>Sửa</button>
@@ -112,6 +132,31 @@ export default function Flowers() {
             ))}
           </tbody>
         </table>
+        {total === 0 && <p className="empty">Chưa có loại hoa nào</p>}
+        {totalPages > 1 && (
+          <nav className="pagination" aria-label="Phân trang danh sách hoa">
+            <button
+              type="button"
+              className="btn btn-secondary btn-sm"
+              disabled={page <= 1}
+              onClick={() => setPage((p) => p - 1)}
+            >
+              Trước
+            </button>
+            <span className="pagination-info">
+              Trang {page} / {totalPages}
+              <span className="pagination-total"> ({total} loại)</span>
+            </span>
+            <button
+              type="button"
+              className="btn btn-secondary btn-sm"
+              disabled={page >= totalPages}
+              onClick={() => setPage((p) => p + 1)}
+            >
+              Sau
+            </button>
+          </nav>
+        )}
       </div>
     </div>
   );

@@ -10,10 +10,28 @@ router.use(authRequired);
 
 router.get('/', async (req, res) => {
   try {
-    const { q } = req.query;
+    const { q, page, limit: limitParam } = req.query;
     const filter = q?.trim()
       ? { flowerName: { $regex: escapeRegex(q.trim()), $options: 'i' } }
       : {};
+
+    if (page !== undefined) {
+      const pageNum = Math.max(1, parseInt(page, 10) || 1);
+      const limit = Math.min(50, Math.max(1, parseInt(limitParam, 10) || 10));
+      const skip = (pageNum - 1) * limit;
+      const [items, total] = await Promise.all([
+        Flower.find(filter).sort({ flowerName: 1 }).skip(skip).limit(limit).lean(),
+        Flower.countDocuments(filter),
+      ]);
+      return res.json({
+        items,
+        page: pageNum,
+        limit,
+        total,
+        totalPages: Math.max(1, Math.ceil(total / limit)),
+      });
+    }
+
     const flowers = await Flower.find(filter).sort({ flowerName: 1 }).limit(30).lean();
     res.json(flowers);
   } catch (err) {
