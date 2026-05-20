@@ -503,6 +503,10 @@ td.actions .btn {
   gap: 0.5rem;
 }
 
+.flower-section-search {
+  margin-bottom: 0.75rem;
+}
+
 .pagination {
   display: flex;
   flex-wrap: wrap;

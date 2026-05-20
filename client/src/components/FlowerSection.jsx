@@ -1,6 +1,8 @@
-import { useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { api } from '../api/client';
 import FlowerCombobox from './FlowerCombobox';
+
+const PAGE_SIZE = 10;
 
 const TYPE_LABELS = {
   owning: 'Hoa đang sở hữu',
@@ -11,6 +13,13 @@ const TYPE_LABELS = {
 function displayName(item) {
   if (item.type === 'root_stock') return item.customName;
   return item.flowerId?.flowerName || '—';
+}
+
+function matchesSearch(item, type, q) {
+  const name = displayName(item).toLowerCase();
+  const note = (item.note || '').toLowerCase();
+  const qty = type === 'owning' ? String(item.quantity ?? '') : '';
+  return name.includes(q) || note.includes(q) || qty.includes(q);
 }
 
 export default function FlowerSection({ userId, type, items, canEdit, onRefresh }) {
@@ -24,10 +33,29 @@ export default function FlowerSection({ userId, type, items, canEdit, onRefresh 
   });
   const [error, setError] = useState('');
   const [editingId, setEditingId] = useState(null);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [page, setPage] = useState(1);
 
   const excludeFlowerIds = items
     .filter((i) => i._id !== editingId && i.flowerId?._id)
     .map((i) => i.flowerId._id);
+
+  const filtered = useMemo(() => {
+    const q = searchQuery.trim().toLowerCase();
+    if (!q) return items;
+    return items.filter((item) => matchesSearch(item, type, q));
+  }, [items, searchQuery, type]);
+
+  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
+  const pageItems = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+
+  useEffect(() => {
+    setPage(1);
+  }, [searchQuery]);
+
+  useEffect(() => {
+    if (page > totalPages) setPage(totalPages);
+  }, [page, totalPages]);
 
   const resetForm = () => {
     setForm({ flowerId: '', flowerName: '', customName: '', quantity: 1, note: '' });
@@ -86,6 +114,8 @@ export default function FlowerSection({ userId, type, items, canEdit, onRefresh 
     if (!confirm('Xóa mục này?')) return;
     try {
       await api(`/user-flowers/${id}`, { method: 'DELETE' });
+      const nextPage = pageItems.length === 1 && page > 1 ? page - 1 : page;
+      if (nextPage !== page) setPage(nextPage);
       onRefresh();
     } catch (err) {
       alert(err.message);
@@ -153,8 +183,23 @@ export default function FlowerSection({ userId, type, items, canEdit, onRefresh 
         </form>
       )}
 
+      {items.length > 0 && (
+        <input
+          className="search-input flower-section-search"
+          placeholder={
+            type === 'root_stock'
+              ? 'Tìm theo tên gốc, ghi chú...'
+              : 'Tìm theo tên hoa, ghi chú, số lượng...'
+          }
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+        />
+      )}
+
       {items.length === 0 ? (
         <p className="empty">Chưa có dữ liệu</p>
+      ) : filtered.length === 0 ? (
+        <p className="empty">Không tìm thấy</p>
       ) : (
         <div className="table-wrap">
           <table>
@@ -167,7 +212,7 @@ export default function FlowerSection({ userId, type, items, canEdit, onRefresh 
               </tr>
             </thead>
             <tbody>
-              {items.map((item) => (
+              {pageItems.map((item) => (
                 <tr key={item._id}>
                   <td>{displayName(item)}</td>
                   {type === 'owning' && <td>{item.quantity}</td>}
@@ -186,6 +231,30 @@ export default function FlowerSection({ userId, type, items, canEdit, onRefresh 
               ))}
             </tbody>
           </table>
+          {totalPages > 1 && (
+            <nav className="pagination" aria-label={`Phân trang ${TYPE_LABELS[type]}`}>
+              <button
+                type="button"
+                className="btn btn-secondary btn-sm"
+                disabled={page <= 1}
+                onClick={() => setPage((p) => p - 1)}
+              >
+                Trước
+              </button>
+              <span className="pagination-info">
+                Trang {page} / {totalPages}
+                <span className="pagination-total"> ({filtered.length} mục)</span>
+              </span>
+              <button
+                type="button"
+                className="btn btn-secondary btn-sm"
+                disabled={page >= totalPages}
+                onClick={() => setPage((p) => p + 1)}
+              >
+                Sau
+              </button>
+            </nav>
+          )}
         </div>
       )}
     </section>
