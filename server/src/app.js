@@ -1,6 +1,7 @@
 import express from 'express';
 import cors from 'cors';
 import { connectDB, pingDB } from './config/db.js';
+import { ensureProductionDefaults } from './seedData.js';
 import { newReqId, createRequestLogger } from './utils/perfLog.js';
 import authRoutes from './routes/auth.js';
 import userRoutes from './routes/users.js';
@@ -67,6 +68,12 @@ export function createApp() {
     try {
       const t0 = Date.now();
       await connectDB(req.reqId);
+
+      if (!globalThis.__prodDefaultsChecked) {
+        await ensureProductionDefaults();
+        globalThis.__prodDefaultsChecked = true;
+      }
+
       req.log.info('middleware_db_ready', { ms: Date.now() - t0 });
       next();
     } catch (err) {

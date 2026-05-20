@@ -63,3 +63,32 @@ export async function seedDatabase({ force = false } = {}) {
 
   return true;
 }
+
+/** Production (Atlas): tạo admin + danh mục hoa mẫu nếu DB còn trống — không xóa dữ liệu có sẵn */
+export async function ensureProductionDefaults() {
+  let created = false;
+
+  const hasAdmin = await User.exists({ username: 'admin' });
+  if (!hasAdmin) {
+    await User.create({
+      username: 'admin',
+      password: 'admin123',
+      displayName: 'Quản trị viên',
+      role: 'admin',
+      phone: '',
+    });
+    console.log(JSON.stringify({ level: 'info', step: 'ensure_admin_created' }));
+    created = true;
+  }
+
+  const flowerCount = await Flower.countDocuments();
+  if (flowerCount === 0) {
+    for (const name of SAMPLE_FLOWERS) {
+      await Flower.create({ flowerName: name });
+    }
+    console.log(JSON.stringify({ level: 'info', step: 'ensure_flowers_created', count: SAMPLE_FLOWERS.length }));
+    created = true;
+  }
+
+  return created;
+}

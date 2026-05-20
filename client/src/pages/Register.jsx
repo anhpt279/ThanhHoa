@@ -50,7 +50,8 @@ export default function Register() {
   return (
     <div className="login-page">
       <div className="login-card card auth-card-wide">
-        <h1>🌸 Đăng ký thành viên</h1>
+        <span className="auth-logo" aria-hidden>🌸</span>
+        <h1>Đăng ký thành viên</h1>
         <p className="login-sub">Tạo tài khoản để tham gia Hội Chơi Hoa</p>
         <form onSubmit={handleSubmit}>
           <div className="form-group">

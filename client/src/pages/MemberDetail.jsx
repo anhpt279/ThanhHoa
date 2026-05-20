@@ -19,22 +19,38 @@ export default function MemberDetail() {
     load();
   }, [id]);
 
-  if (!profile) return <p>Đang tải...</p>;
+  if (!profile) {
+    return (
+      <div className="loading-state">
+        <span className="loading-spinner" />
+        Đang tải...
+      </div>
+    );
+  }
 
   const { user: member, flowers: grouped } = profile;
   const canEdit = isAdmin || String(user?._id) === id;
 
   return (
     <div>
-      <Link to={isAdmin ? '/thanh-vien' : '/ho-so'} style={{ fontSize: '0.9rem' }}>
+      <Link to={isAdmin ? '/thanh-vien' : '/ho-so'} className="back-link">
         ← Quay lại
       </Link>
       <h1 className="page-title">{member.displayName}</h1>
 
-      <div className="card" style={{ marginBottom: '1.5rem' }}>
-        <p><strong>SĐT:</strong> {member.phone || '—'}</p>
-        <p><strong>Facebook:</strong> {member.facebook || '—'}</p>
-        <p><strong>Zalo:</strong> {member.zaloName || '—'}</p>
+      <div className="card mb-15 profile-info">
+        <div className="profile-info-row">
+          <strong>SĐT</strong>
+          <span>{member.phone || '—'}</span>
+        </div>
+        <div className="profile-info-row">
+          <strong>Facebook</strong>
+          <span>{member.facebook || '—'}</span>
+        </div>
+        <div className="profile-info-row">
+          <strong>Zalo</strong>
+          <span>{member.zaloName || '—'}</span>
+        </div>
       </div>
 
       <div className="flower-sections">
@@ -63,16 +79,6 @@ export default function MemberDetail() {
           onRefresh={load}
         />
       </div>
-
-      <style>{`
-        .flower-sections { display: flex; flex-direction: column; gap: 1rem; }
-        .section-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; }
-        .section-header h3 { margin: 0; font-size: 1rem; }
-        .inline-form { margin-bottom: 1rem; padding: 1rem; background: var(--bg); border-radius: 8px; }
-        .form-actions { display: flex; gap: 0.5rem; }
-        .actions { white-space: nowrap; }
-        .actions .btn { margin-right: 0.25rem; }
-      `}</style>
     </div>
   );
 }

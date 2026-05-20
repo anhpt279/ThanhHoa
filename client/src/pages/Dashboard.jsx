@@ -11,12 +11,20 @@ export default function Dashboard() {
     api('/dashboard').then(setData).catch(console.error);
   }, []);
 
-  if (!data) return <p>Đang tải...</p>;
+  if (!data) {
+    return (
+      <div className="loading-state">
+        <span className="loading-spinner" />
+        Đang tải...
+      </div>
+    );
+  }
 
   return (
     <div>
       <h1 className="page-title">Dashboard</h1>
-      <div className="grid-2" style={{ marginBottom: '1.5rem' }}>
+
+      <div className="grid-2 mb-15">
         <div className="card stat-card">
           <h3>Tổng thành viên</h3>
           <p className="value">{data.totalMembers}</p>
@@ -29,7 +37,7 @@ export default function Dashboard() {
 
       <div className="grid-2">
         <div className="card">
-          <h3 style={{ marginBottom: '0.75rem' }}>Hoa phổ biến nhất</h3>
+          <h3 className="card-title">Hoa phổ biến nhất</h3>
           {data.popularFlowers?.length === 0 ? (
             <p className="empty">Chưa có dữ liệu</p>
           ) : (
@@ -47,7 +55,7 @@ export default function Dashboard() {
         </div>
 
         <div className="card">
-          <h3 style={{ marginBottom: '0.75rem' }}>Cập nhật gần đây</h3>
+          <h3 className="card-title">Cập nhật gần đây</h3>
           {data.recentMembers?.length === 0 ? (
             <p className="empty">Chưa có dữ liệu</p>
           ) : (
@@ -69,13 +77,6 @@ export default function Dashboard() {
           )}
         </div>
       </div>
-
-      <style>{`
-        .simple-list { list-style: none; }
-        .simple-list li { padding: 0.4rem 0; border-bottom: 1px solid var(--border); }
-        .simple-list li:last-child { border-bottom: none; }
-        .muted { color: var(--muted); font-size: 0.875rem; }
-      `}</style>
     </div>
   );
 }

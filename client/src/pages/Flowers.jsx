@@ -44,17 +44,17 @@ export default function Flowers() {
   return (
     <div>
       <h1 className="page-title">Danh sách hoa</h1>
-      <p style={{ color: 'var(--muted)', marginBottom: '1rem' }}>
+      <p className="card-muted mb-1">
         Danh mục master — thành viên chọn từ đây khi cập nhật hoa.
       </p>
 
-      <form className="card" onSubmit={handleSubmit} style={{ marginBottom: '1.5rem', maxWidth: 480 }}>
+      <form className="card mb-15" onSubmit={handleSubmit} style={{ maxWidth: 480 }}>
         <div className="form-group">
           <label>{editing ? 'Sửa tên hoa' : 'Tên hoa mới'}</label>
           <input value={name} onChange={(e) => setName(e.target.value)} required />
         </div>
         {error && <p className="error-msg">{error}</p>}
-        <div style={{ display: 'flex', gap: '0.5rem' }}>
+        <div className="form-actions" style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
           <button type="submit" className="btn btn-primary">{editing ? 'Cập nhật' : 'Thêm'}</button>
           {editing && (
             <button type="button" className="btn btn-secondary" onClick={() => { setEditing(null); setName(''); }}>
@@ -78,7 +78,7 @@ export default function Flowers() {
               <tr key={f._id}>
                 <td>{i + 1}</td>
                 <td>{f.flowerName}</td>
-                <td>
+                <td className="actions">
                   <button type="button" className="btn btn-secondary btn-sm" onClick={() => handleEdit(f)}>Sửa</button>
                   <button type="button" className="btn btn-danger btn-sm" onClick={() => handleDelete(f._id)}>Xóa</button>
                 </td>

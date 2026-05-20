@@ -47,24 +47,23 @@ export default function Members() {
 
   return (
     <div>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
-        <h1 className="page-title" style={{ margin: 0 }}>Thành viên</h1>
+      <div className="page-header">
+        <h1 className="page-title">Thành viên</h1>
         <button type="button" className="btn btn-primary" onClick={() => setShowForm(!showForm)}>
           + Thêm thành viên
         </button>
       </div>
 
       <input
-        className="search-input card"
+        className="search-input"
         placeholder="Tìm theo tên, SĐT, Zalo..."
         value={q}
         onChange={(e) => setQ(e.target.value)}
-        style={{ width: '100%', marginBottom: '1rem', padding: '0.75rem' }}
       />
 
       {showForm && (
-        <form className="card" onSubmit={handleCreate} style={{ marginBottom: '1rem' }}>
-          <h3 style={{ marginBottom: '1rem' }}>Thêm thành viên mới</h3>
+        <form className="card mb-1" onSubmit={handleCreate}>
+          <h3 className="card-title">Thêm thành viên mới</h3>
           <div className="grid-2">
             <div className="form-group">
               <label>Tên đăng nhập *</label>
@@ -120,7 +119,7 @@ export default function Members() {
                     {m.role}
                   </span>
                 </td>
-                <td>
+                <td className="actions">
                   {m.role !== 'admin' && (
                     <button type="button" className="btn btn-danger btn-sm" onClick={() => handleDelete(m._id, m.displayName)}>
                       Xóa

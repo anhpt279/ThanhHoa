@@ -34,9 +34,9 @@ export default function MyProfile() {
     <div>
       <h1 className="page-title">Hồ sơ của tôi</h1>
 
-      <div className="grid-2" style={{ alignItems: 'start' }}>
+      <div className="grid-2 align-start">
         <form className="card" onSubmit={handleSave}>
-          <h3 style={{ marginBottom: '1rem' }}>Thông tin cá nhân</h3>
+          <h3 className="card-title">Thông tin cá nhân</h3>
           <div className="form-group">
             <label>Tên hiển thị *</label>
             <input
@@ -65,17 +65,17 @@ export default function MyProfile() {
               onChange={(e) => setForm({ ...form, password: e.target.value })}
             />
           </div>
-          {msg && <p style={{ color: 'var(--accent)', marginBottom: '0.5rem' }}>{msg}</p>}
+          {msg && <p className="success-msg">{msg}</p>}
           {error && <p className="error-msg">{error}</p>}
-          <button type="submit" className="btn btn-primary">Lưu thông tin</button>
+          <button type="submit" className="btn btn-primary btn-block">Lưu thông tin</button>
         </form>
 
         <div className="card">
-          <h3 style={{ marginBottom: '0.75rem' }}>Quản lý hoa của bạn</h3>
-          <p style={{ color: 'var(--muted)', marginBottom: '1rem' }}>
+          <h3 className="card-title">Quản lý hoa của bạn</h3>
+          <p className="card-muted">
             Cập nhật hoa đang có, gốc trồng và hoa chờ bồi.
           </p>
-          <Link to={`/thanh-vien/${user._id}`} className="btn btn-primary">
+          <Link to={`/thanh-vien/${user._id}`} className="btn btn-primary btn-block">
             Mở hồ sơ hoa →
           </Link>
         </div>

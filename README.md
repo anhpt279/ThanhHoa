@@ -112,7 +112,16 @@ Trong **Project → Settings → Environment Variables**:
 >
 > **Quan trọng (tránh timeout):** Trên Atlas chọn cluster region gần Vercel (vd. `ap-southeast-1` Singapore nếu deploy region Hong Kong). Connection string phải có mật khẩu thật, không còn `<db_password>`.
 
-### 3. Seed dữ liệu lần đầu (chạy trên máy local)
+### 3. Tài khoản admin trên production
+
+Local dùng MongoDB in-memory → tự tạo `admin` / `admin123`.  
+**Atlas (Vercel)** là database khác — lần đầu deploy, server **tự tạo** `admin` / `admin123` nếu chưa có user `admin`.
+
+> Sau khi đăng nhập prod, nên đổi mật khẩu admin trong **Hồ sơ** hoặc tạo admin mới rồi xóa tài khoản mặc định.
+
+Hoặc seed thủ công từ máy (cùng `MONGODB_URI` như Vercel):
+
+### 4. Seed dữ liệu lần đầu (chạy trên máy local)
 
 ```bash
 # Trong server/.env đặt MONGODB_URI trỏ Atlas (giống Vercel)
@@ -121,7 +130,7 @@ npm run seed
 
 Tạo admin `admin` / `admin123` trên database production.
 
-### 4. Kiểm tra sau deploy
+### 5. Kiểm tra sau deploy
 
 - `https://your-app.vercel.app/api/health` → `{"ok":true,"db":"connected","ms":...}`
 - Đăng nhập tại `https://your-app.vercel.app/login`
@@ -142,7 +151,11 @@ Mỗi request in JSON một dòng, ví dụ:
 | `login_bcrypt_done` | So khớp mật khẩu xong |
 | `login_success` | Login thành công |
 
-### 6. FUNCTION_INVOCATION_TIMEOUT (hkg1 / sin1)
+### 6. Admin login được ở local nhưng không được trên Vercel
+
+Thường do **chưa có user `admin` trên Atlas** (local và prod là 2 database khác nhau). Code hiện tự tạo admin khi thiếu — redeploy rồi thử `admin` / `admin123` lại.
+
+### 7. FUNCTION_INVOCATION_TIMEOUT (hkg1 / sin1)
 
 | Nguyên nhân | Cách xử lý |
 |-------------|------------|

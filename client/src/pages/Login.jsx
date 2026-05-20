@@ -30,7 +30,8 @@ export default function Login() {
   return (
     <div className="login-page">
       <div className="login-card card">
-        <h1>🌸 Hội Chơi Hoa</h1>
+        <span className="auth-logo" aria-hidden>🌸</span>
+        <h1>Hội Chơi Hoa</h1>
         <p className="login-sub">Đăng nhập để quản lý hoa & thành viên</p>
         <form onSubmit={handleSubmit}>
           <div className="form-group">
