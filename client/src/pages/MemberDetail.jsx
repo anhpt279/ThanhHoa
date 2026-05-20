@@ -8,11 +8,9 @@ export default function MemberDetail() {
   const { id } = useParams();
   const { user, isAdmin } = useAuth();
   const [profile, setProfile] = useState(null);
-  const [flowers, setFlowers] = useState([]);
 
   const load = () => {
     api(`/users/${id}`).then(setProfile).catch(console.error);
-    api('/flowers').then(setFlowers).catch(console.error);
   };
 
   useEffect(() => {
@@ -54,30 +52,9 @@ export default function MemberDetail() {
       </div>
 
       <div className="flower-sections">
-        <FlowerSection
-          userId={id}
-          type="owning"
-          items={grouped.owning}
-          flowers={flowers}
-          canEdit={canEdit}
-          onRefresh={load}
-        />
-        <FlowerSection
-          userId={id}
-          type="root_stock"
-          items={grouped.root_stock}
-          flowers={flowers}
-          canEdit={canEdit}
-          onRefresh={load}
-        />
-        <FlowerSection
-          userId={id}
-          type="waiting_graft"
-          items={grouped.waiting_graft}
-          flowers={flowers}
-          canEdit={canEdit}
-          onRefresh={load}
-        />
+        <FlowerSection userId={id} type="owning" items={grouped.owning} canEdit={canEdit} onRefresh={load} />
+        <FlowerSection userId={id} type="root_stock" items={grouped.root_stock} canEdit={canEdit} onRefresh={load} />
+        <FlowerSection userId={id} type="waiting_graft" items={grouped.waiting_graft} canEdit={canEdit} onRefresh={load} />
       </div>
     </div>
   );

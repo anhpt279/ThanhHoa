@@ -2,6 +2,7 @@ import { Router } from 'express';
 import UserFlower, { FLOWER_TYPES } from '../models/UserFlower.js';
 import { authRequired } from '../middleware/auth.js';
 import { touchUserUpdated } from '../utils/touchUser.js';
+import { assertNoDuplicateUserFlower } from '../utils/userFlowerDuplicate.js';
 
 const router = Router();
 
@@ -45,6 +46,13 @@ router.post('/', async (req, res) => {
       return res.status(400).json({ message: 'Cần chọn loại hoa' });
     }
 
+    await assertNoDuplicateUserFlower({
+      userId: targetUserId,
+      type,
+      flowerId: type === 'root_stock' ? null : flowerId,
+      customName: type === 'root_stock' ? customName : '',
+    });
+
     const item = await UserFlower.create({
       userId: targetUserId,
       flowerId: type === 'root_stock' ? null : flowerId,
@@ -58,7 +66,8 @@ router.post('/', async (req, res) => {
     const populated = await UserFlower.findById(item._id).populate('flowerId', 'flowerName');
     res.status(201).json(populated);
   } catch (err) {
-    res.status(500).json({ message: err.message });
+    const status = err.message?.includes('đã có') ? 400 : 500;
+    res.status(status).json({ message: err.message });
   }
 });
 
@@ -71,6 +80,23 @@ router.put('/:id', async (req, res) => {
     }
 
     const { flowerId, customName, quantity, note } = req.body;
+
+    const nextType = item.type;
+    const nextFlowerId =
+      nextType === 'root_stock' ? null : flowerId !== undefined ? flowerId : item.flowerId;
+    const nextCustomName =
+      nextType === 'root_stock'
+        ? (customName !== undefined ? customName : item.customName)
+        : '';
+
+    await assertNoDuplicateUserFlower({
+      userId: item.userId,
+      type: nextType,
+      flowerId: nextFlowerId,
+      customName: nextCustomName,
+      excludeId: item._id,
+    });
+
     if (item.type === 'root_stock') {
       if (customName !== undefined) item.customName = customName.trim();
     } else if (flowerId !== undefined) {
@@ -84,7 +110,8 @@ router.put('/:id', async (req, res) => {
     const populated = await UserFlower.findById(item._id).populate('flowerId', 'flowerName');
     res.json(populated);
   } catch (err) {
-    res.status(500).json({ message: err.message });
+    const status = err.message?.includes('đã có') ? 400 : 500;
+    res.status(status).json({ message: err.message });
   }
 });
 

@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { api } from '../api/client';
+import FlowerCombobox from './FlowerCombobox';
 
 const TYPE_LABELS = {
   owning: 'Hoa đang sở hữu',
@@ -12,14 +13,24 @@ function displayName(item) {
   return item.flowerId?.flowerName || '—';
 }
 
-export default function FlowerSection({ userId, type, items, flowers, canEdit, onRefresh }) {
+export default function FlowerSection({ userId, type, items, canEdit, onRefresh }) {
   const [showForm, setShowForm] = useState(false);
-  const [form, setForm] = useState({ flowerId: '', customName: '', quantity: 1, note: '' });
+  const [form, setForm] = useState({
+    flowerId: '',
+    flowerName: '',
+    customName: '',
+    quantity: 1,
+    note: '',
+  });
   const [error, setError] = useState('');
   const [editingId, setEditingId] = useState(null);
 
+  const excludeFlowerIds = items
+    .filter((i) => i._id !== editingId && i.flowerId?._id)
+    .map((i) => i.flowerId._id);
+
   const resetForm = () => {
-    setForm({ flowerId: '', customName: '', quantity: 1, note: '' });
+    setForm({ flowerId: '', flowerName: '', customName: '', quantity: 1, note: '' });
     setShowForm(false);
     setEditingId(null);
     setError('');
@@ -63,6 +74,7 @@ export default function FlowerSection({ userId, type, items, flowers, canEdit, o
     setEditingId(item._id);
     setForm({
       flowerId: item.flowerId?._id || '',
+      flowerName: item.flowerId?.flowerName || '',
       customName: item.customName || '',
       quantity: item.quantity ?? 1,
       note: item.note || '',
@@ -105,16 +117,13 @@ export default function FlowerSection({ userId, type, items, flowers, canEdit, o
           ) : (
             <div className="form-group">
               <label>Loại hoa</label>
-              <select
+              <FlowerCombobox
                 value={form.flowerId}
-                onChange={(e) => setForm({ ...form, flowerId: e.target.value })}
+                selectedLabel={form.flowerName}
+                excludeIds={excludeFlowerIds}
                 required
-              >
-                <option value="">-- Chọn hoa --</option>
-                {flowers.map((f) => (
-                  <option key={f._id} value={f._id}>{f.flowerName}</option>
-                ))}
-              </select>
+                onChange={(id, name) => setForm((f) => ({ ...f, flowerId: id, flowerName: name }))}
+              />
             </div>
           )}
           {type === 'owning' && (
@@ -134,8 +143,12 @@ export default function FlowerSection({ userId, type, items, flowers, canEdit, o
           </div>
           {error && <p className="error-msg">{error}</p>}
           <div className="form-actions">
-            <button type="submit" className="btn btn-primary btn-sm">Lưu</button>
-            <button type="button" className="btn btn-secondary btn-sm" onClick={resetForm}>Hủy</button>
+            <button type="submit" className="btn btn-primary btn-sm" disabled={type !== 'root_stock' && !form.flowerId}>
+              Lưu
+            </button>
+            <button type="button" className="btn btn-secondary btn-sm" onClick={resetForm}>
+              Hủy
+            </button>
           </div>
         </form>
       )}
@@ -161,8 +174,12 @@ export default function FlowerSection({ userId, type, items, flowers, canEdit, o
                   <td>{item.note || '—'}</td>
                   {canEdit && (
                     <td className="actions">
-                      <button type="button" className="btn btn-secondary btn-sm" onClick={() => handleEdit(item)}>Sửa</button>
-                      <button type="button" className="btn btn-danger btn-sm" onClick={() => handleDelete(item._id)}>Xóa</button>
+                      <button type="button" className="btn btn-secondary btn-sm" onClick={() => handleEdit(item)}>
+                        Sửa
+                      </button>
+                      <button type="button" className="btn btn-danger btn-sm" onClick={() => handleDelete(item._id)}>
+                        Xóa
+                      </button>
                     </td>
                   )}
                 </tr>

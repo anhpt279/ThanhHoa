@@ -1,0 +1,85 @@
+.flower-combobox {
+  position: relative;
+  width: 100%;
+}
+
+.flower-combobox-input-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.flower-combobox-input {
+  width: 100%;
+  padding: 0.65rem 2rem 0.65rem 0.85rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  transition: border-color var(--transition), box-shadow var(--transition);
+}
+
+.flower-combobox-input:focus {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px rgba(196, 92, 74, 0.15);
+}
+
+.flower-combobox-clear {
+  position: absolute;
+  right: 0.35rem;
+  width: 28px;
+  height: 28px;
+  border: none;
+  background: var(--bg-soft);
+  border-radius: 6px;
+  color: var(--muted);
+  font-size: 1.1rem;
+  line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.flower-combobox-clear:hover {
+  background: var(--border);
+  color: var(--text);
+}
+
+.flower-combobox-list {
+  position: absolute;
+  z-index: 50;
+  top: calc(100% + 4px);
+  left: 0;
+  right: 0;
+  max-height: 220px;
+  overflow-y: auto;
+  margin: 0;
+  padding: 0.35rem;
+  list-style: none;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  box-shadow: var(--shadow-lg);
+}
+
+.flower-combobox-option {
+  width: 100%;
+  text-align: left;
+  padding: 0.55rem 0.65rem;
+  border: none;
+  background: transparent;
+  border-radius: 6px;
+  font-size: 0.9rem;
+  color: var(--text);
+}
+
+.flower-combobox-option:hover,
+.flower-combobox-option.active {
+  background: var(--primary-soft);
+  color: var(--primary-dark);
+}
+
+.flower-combobox-hint {
+  padding: 0.65rem 0.75rem;
+  font-size: 0.85rem;
+  color: var(--muted);
+}
