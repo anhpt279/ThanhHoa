@@ -1,6 +1,19 @@
 import { useEffect, useState } from 'react';
 import { api } from '../api/client';
 
+const DUPLICATE_MSG = 'Loại hoa đã tồn tại';
+
+function normalizeFlowerName(name) {
+  return name.trim().toLowerCase();
+}
+
+function findDuplicateFlower(name, flowers, excludeId) {
+  const key = normalizeFlowerName(name);
+  return flowers.find(
+    (f) => normalizeFlowerName(f.flowerName) === key && String(f._id) !== String(excludeId ?? '')
+  );
+}
+
 export default function Flowers() {
   const [flowers, setFlowers] = useState([]);
   const [name, setName] = useState('');
@@ -16,11 +29,23 @@ export default function Flowers() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
+
+    const trimmed = name.trim();
+    if (!trimmed) {
+      setError('Tên hoa không được trống');
+      return;
+    }
+
+    if (findDuplicateFlower(trimmed, flowers, editing)) {
+      setError(DUPLICATE_MSG);
+      return;
+    }
+
     try {
       if (editing) {
-        await api(`/flowers/${editing}`, { method: 'PUT', body: JSON.stringify({ flowerName: name }) });
+        await api(`/flowers/${editing}`, { method: 'PUT', body: JSON.stringify({ flowerName: trimmed }) });
       } else {
-        await api('/flowers', { method: 'POST', body: JSON.stringify({ flowerName: name }) });
+        await api('/flowers', { method: 'POST', body: JSON.stringify({ flowerName: trimmed }) });
       }
       setName('');
       setEditing(null);
@@ -33,6 +58,7 @@ export default function Flowers() {
   const handleEdit = (f) => {
     setEditing(f._id);
     setName(f.flowerName);
+    setError('');
   };
 
   const handleDelete = async (id) => {
@@ -57,7 +83,7 @@ export default function Flowers() {
         <div className="form-actions" style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
           <button type="submit" className="btn btn-primary">{editing ? 'Cập nhật' : 'Thêm'}</button>
           {editing && (
-            <button type="button" className="btn btn-secondary" onClick={() => { setEditing(null); setName(''); }}>
+            <button type="button" className="btn btn-secondary" onClick={() => { setEditing(null); setName(''); setError(''); }}>
               Hủy
             </button>
           )}
