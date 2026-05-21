@@ -2,6 +2,7 @@ import { Router } from 'express';
 import User from '../models/User.js';
 import UserFlower from '../models/UserFlower.js';
 import { authRequired, adminOnly } from '../middleware/auth.js';
+import { buildUserSearchFilter, userSearchSort } from '../utils/searchQuery.js';
 
 const router = Router();
 
@@ -10,16 +11,8 @@ router.use(authRequired);
 router.get('/', adminOnly, async (req, res) => {
   try {
     const { q } = req.query;
-    const filter = q
-      ? {
-          $or: [
-            { displayName: { $regex: q, $options: 'i' } },
-            { phone: { $regex: q, $options: 'i' } },
-            { zaloName: { $regex: q, $options: 'i' } },
-          ],
-        }
-      : {};
-    const users = await User.find(filter).sort({ displayName: 1 });
+    const filter = buildUserSearchFilter(q);
+    const users = await User.find(filter).sort(userSearchSort(filter));
     res.json(users);
   } catch (err) {
     res.status(500).json({ message: err.message });
@@ -33,7 +26,14 @@ router.get('/:id', async (req, res) => {
       return res.status(403).json({ message: 'Không có quyền xem' });
     }
     const user = await User.findById(req.params.id);
-    if (!user) return res.status(404).json({ message: 'Không tìm thấy thành viên' });
+    if (!user) {
+      const staleSession = !isAdmin && req.user.id === req.params.id;
+      return res.status(staleSession ? 401 : 404).json({
+        message: staleSession
+          ? 'Phiên đăng nhập không còn hợp lệ (dữ liệu dev đã reset). Vui lòng đăng nhập lại.'
+          : 'Không tìm thấy thành viên',
+      });
+    }
 
     const items = await UserFlower.find({ userId: user._id })
       .populate('flowerId', 'flowerName')

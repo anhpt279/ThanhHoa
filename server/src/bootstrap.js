@@ -1,12 +1,16 @@
 import { connectDB } from './config/db.js';
 import { seedDatabase } from './seedData.js';
 import User from './models/User.js';
+import Flower from './models/Flower.js';
+import UserFlower from './models/UserFlower.js';
 
 let bootstrapped = false;
 
 export async function bootstrap() {
   if (bootstrapped) return;
   await connectDB();
+
+  await Promise.all([User.syncIndexes(), Flower.syncIndexes(), UserFlower.syncIndexes()]);
 
   if (process.env.VERCEL !== '1' && process.env.AUTO_SEED !== 'false') {
     const seeded = await seedDatabase();

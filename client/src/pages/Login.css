@@ -5,32 +5,55 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 1.25rem;
-  background:
-    radial-gradient(ellipse 80% 50% at 50% -10%, rgba(196, 92, 74, 0.12), transparent),
-    linear-gradient(165deg, #f7f4ef 0%, #ebe4d9 50%, #e8dfd4 100%);
+  padding: 1.5rem;
+  position: relative;
+  overflow: hidden;
+  background-color: #f8e8f0;
+  background-image: var(--bg-image);
+  background-size: cover;
+  background-position: center top;
+  background-repeat: no-repeat;
 }
 
 .auth-card,
 .login-card {
   width: 100%;
   max-width: 420px;
-  padding: 1.75rem 1.5rem;
-  border-radius: 16px;
+  padding: 2rem 1.65rem;
+  border-radius: var(--radius-lg);
+  border: 2px solid var(--border);
+  background: var(--surface);
   box-shadow: var(--shadow-lg);
+  position: relative;
+  z-index: 1;
 }
 
 .auth-card-wide {
   max-width: 460px;
 }
 
+.auth-bloom {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 0.75rem;
+}
+
+.auth-bloom .brand-mark {
+  color: var(--primary);
+  filter: drop-shadow(0 6px 12px rgba(255, 143, 171, 0.35));
+}
+
+.auth-bloom svg {
+  width: 56px;
+  height: 56px;
+}
+
 .auth-card h1,
 .login-card h1 {
   text-align: center;
-  font-size: clamp(1.35rem, 4vw, 1.55rem);
+  font-size: clamp(1.45rem, 4vw, 1.7rem);
   font-weight: 700;
   margin-bottom: 0.35rem;
-  letter-spacing: -0.02em;
 }
 
 .auth-sub,
@@ -38,29 +61,21 @@
   text-align: center;
   color: var(--muted);
   margin-bottom: 1.5rem;
-  font-size: 0.9rem;
-  line-height: 1.45;
-}
-
-.auth-logo {
-  display: block;
-  text-align: center;
-  font-size: 2.5rem;
-  margin-bottom: 0.5rem;
-  line-height: 1;
+  font-size: 0.92rem;
+  line-height: 1.5;
 }
 
 .auth-switch {
   text-align: center;
-  margin-top: 1.25rem;
+  margin-top: 1.35rem;
   padding-top: 1.25rem;
-  border-top: 1px solid var(--border);
+  border-top: 2px dashed var(--border);
   font-size: 0.9rem;
   color: var(--muted);
 }
 
 .auth-switch a {
-  font-weight: 600;
+  font-weight: 700;
 }
 
 .login-btn {

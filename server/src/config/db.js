@@ -1,5 +1,13 @@
+import fs from 'fs';
+import path from 'path';
+import { fileURLToPath } from 'url';
 import mongoose from 'mongoose';
 import { newReqId } from '../utils/perfLog.js';
+
+const MEMORY_DB_PATH = path.join(
+  path.dirname(fileURLToPath(import.meta.url)),
+  '../../.mongo-memory'
+);
 
 if (!globalThis.mongooseCache) {
   globalThis.mongooseCache = { conn: null, promise: null };
@@ -67,8 +75,14 @@ async function resolveMongoUri() {
     const { MongoMemoryServer } = await import('mongodb-memory-server');
     if (!memoryServer) {
       const t = Date.now();
-      memoryServer = await MongoMemoryServer.create();
-      dbLog('memory_server_ready', { ms: Date.now() - t });
+      fs.mkdirSync(MEMORY_DB_PATH, { recursive: true });
+      memoryServer = await MongoMemoryServer.create({
+        instance: {
+          dbPath: MEMORY_DB_PATH,
+          storageEngine: 'wiredTiger',
+        },
+      });
+      dbLog('memory_server_ready', { ms: Date.now() - t, dbPath: MEMORY_DB_PATH });
     }
     return memoryServer.getUri('hoi_choi_hoa');
   }

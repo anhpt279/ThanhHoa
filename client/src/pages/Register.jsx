@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Link, useNavigate, Navigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { AuthBloom } from '../components/Icons';
 import './Login.css';
 
 export default function Register() {
@@ -50,9 +51,9 @@ export default function Register() {
   return (
     <div className="login-page">
       <div className="login-card card auth-card-wide">
-        <span className="auth-logo" aria-hidden>🌸</span>
+        <AuthBloom />
         <h1>Đăng ký thành viên</h1>
-        <p className="login-sub">Tạo tài khoản để tham gia Hội Chơi Hoa</p>
+        <p className="login-sub">Bắt đầu trồng và chia sẻ hoa cùng hội</p>
         <form onSubmit={handleSubmit}>
           <div className="form-group">
             <label>Tên đăng nhập *</label>

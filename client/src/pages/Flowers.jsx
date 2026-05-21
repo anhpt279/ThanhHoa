@@ -89,12 +89,12 @@ export default function Flowers() {
 
   return (
     <div>
-      <h1 className="page-title">Danh sách hoa</h1>
-      <p className="card-muted mb-1">
-        Danh mục master — thành viên chọn từ đây khi cập nhật hoa.
+      <h1 className="page-title">Loại hoa</h1>
+      <p className="page-lead">
+        Danh mục loài hoa — thành viên chọn từ đây khi cập nhật vườn.
       </p>
 
-      <form className="card mb-15" onSubmit={handleSubmit} style={{ maxWidth: 480 }}>
+      <form className="card mb-15 flower-form-card" onSubmit={handleSubmit}>
         <div className="form-group">
           <label>{editing ? 'Sửa tên hoa' : 'Tên hoa mới'}</label>
           <input value={name} onChange={(e) => setName(e.target.value)} required />

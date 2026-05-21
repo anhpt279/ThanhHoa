@@ -48,7 +48,10 @@ export default function Members() {
   return (
     <div>
       <div className="page-header">
-        <h1 className="page-title">Thành viên</h1>
+        <div>
+          <h1 className="page-title">Thành viên</h1>
+          <p className="page-lead">Danh sách người chơi trong hội.</p>
+        </div>
         <button type="button" className="btn btn-primary" onClick={() => setShowForm(!showForm)}>
           + Thêm thành viên
         </button>

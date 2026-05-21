@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import Flower from '../models/Flower.js';
-import { escapeRegex } from '../utils/escapeRegex.js';
 import { assertNoDuplicateFlowerName } from '../utils/flowerDuplicate.js';
+import { buildFlowerSearchFilter, flowerSearchSort } from '../utils/searchQuery.js';
 import { authRequired, adminOnly } from '../middleware/auth.js';
 
 const router = Router();
@@ -11,16 +11,15 @@ router.use(authRequired);
 router.get('/', async (req, res) => {
   try {
     const { q, page, limit: limitParam } = req.query;
-    const filter = q?.trim()
-      ? { flowerName: { $regex: escapeRegex(q.trim()), $options: 'i' } }
-      : {};
+    const filter = buildFlowerSearchFilter(q);
+    const sort = flowerSearchSort(filter);
 
     if (page !== undefined) {
       const pageNum = Math.max(1, parseInt(page, 10) || 1);
       const limit = Math.min(50, Math.max(1, parseInt(limitParam, 10) || 10));
       const skip = (pageNum - 1) * limit;
       const [items, total] = await Promise.all([
-        Flower.find(filter).sort({ flowerName: 1 }).skip(skip).limit(limit).lean(),
+        Flower.find(filter).sort(sort).skip(skip).limit(limit).lean(),
         Flower.countDocuments(filter),
       ]);
       return res.json({
@@ -32,7 +31,7 @@ router.get('/', async (req, res) => {
       });
     }
 
-    const flowers = await Flower.find(filter).sort({ flowerName: 1 }).limit(30).lean();
+    const flowers = await Flower.find(filter).sort(sort).limit(30).lean();
     res.json(flowers);
   } catch (err) {
     res.status(500).json({ message: err.message });

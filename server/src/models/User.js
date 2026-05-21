@@ -31,4 +31,11 @@ userSchema.methods.toJSON = function () {
   return obj;
 };
 
+// Tìm kiếm: GET /api/users?q, GET /api/search/members
+userSchema.index(
+  { displayName: 'text', phone: 'text', zaloName: 'text' },
+  { name: 'user_search_text', default_language: 'none' }
+);
+userSchema.index({ displayName: 1 });
+
 export default mongoose.model('User', userSchema);

@@ -104,9 +104,10 @@ export default function Search() {
   return (
     <div>
       <h1 className="page-title">Tìm kiếm</h1>
+      <p className="page-lead">Dò thành viên hoặc loại hoa — xem ai đang trồng gì trong vườn.</p>
 
       <div className="grid-2 align-start">
-        <div className="card">
+        <div className="card search-panel">
           <h3 className="card-title">Tìm thành viên</h3>
           <p className="search-combobox-hint muted">Gõ tên — gợi ý gần đúng, chọn để mở hồ sơ</p>
           <AsyncCombobox
@@ -130,7 +131,7 @@ export default function Search() {
           />
         </div>
 
-        <div className="card">
+        <div className="card search-panel search-panel--flower">
           <h3 className="card-title">Tìm loại hoa (ai đang có?)</h3>
           <p className="search-combobox-hint muted">Gõ tên hoa — gợi ý gần đúng, chọn để xem ai đang có</p>
           <AsyncCombobox

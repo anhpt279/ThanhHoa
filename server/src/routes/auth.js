@@ -123,7 +123,11 @@ router.post('/login', async (req, res) => {
 router.get('/me', authRequired, async (req, res) => {
   try {
     const user = await User.findById(req.user.id);
-    if (!user) return res.status(404).json({ message: 'Không tìm thấy' });
+    if (!user) {
+      return res.status(401).json({
+        message: 'Phiên đăng nhập không còn hợp lệ. Vui lòng đăng nhập lại.',
+      });
+    }
     res.json(user);
   } catch (err) {
     res.status(500).json({ message: err.message });

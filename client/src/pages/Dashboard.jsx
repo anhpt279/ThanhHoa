@@ -22,7 +22,8 @@ export default function Dashboard() {
 
   return (
     <div>
-      <h1 className="page-title">Dashboard</h1>
+      <h1 className="page-title">Vườn nhà</h1>
+      <p className="page-lead">Tổng quan hội chơi hoa — ai đang có gì và vườn vừa cập nhật.</p>
 
       <div className="grid-2 mb-15">
         <div className="card stat-card">

@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Link, useNavigate, Navigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { AuthBloom } from '../components/Icons';
 import './Login.css';
 
 export default function Login() {
@@ -30,9 +31,9 @@ export default function Login() {
   return (
     <div className="login-page">
       <div className="login-card card">
-        <span className="auth-logo" aria-hidden>🌸</span>
+        <AuthBloom />
         <h1>Hội Chơi Hoa</h1>
-        <p className="login-sub">Đăng nhập để quản lý hoa & thành viên</p>
+        <p className="login-sub">Đăng nhập vào vườn hoa chibi của bạn</p>
         <form onSubmit={handleSubmit}>
           <div className="form-group">
             <label>Tên đăng nhập</label>

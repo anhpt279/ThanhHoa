@@ -6,3 +6,4 @@ client/.env
 *.log
 .DS_Store
 server/node_modules/.cache/
+server/.mongo-memory/

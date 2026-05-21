@@ -1,14 +1,15 @@
 import { useState, useEffect } from 'react';
 import { NavLink, Outlet, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { BrandMark, NavIcon } from './Icons';
 import './Layout.css';
 
 const NAV_ITEMS = [
-  { to: '/', label: 'Dashboard', end: true, icon: '📊' },
-  { to: '/thanh-vien', label: 'Thành viên', admin: true, icon: '👥' },
-  { to: '/ho-so', label: 'Hồ sơ của tôi', icon: '👤' },
-  { to: '/hoa', label: 'Danh sách hoa', admin: true, icon: '🌹' },
-  { to: '/tim-kiem', label: 'Tìm kiếm', icon: '🔍' },
+  { to: '/', label: 'Vườn nhà', end: true, icon: 'garden' },
+  { to: '/thanh-vien', label: 'Thành viên', admin: true, icon: 'members' },
+  { to: '/ho-so', label: 'Hoa của tôi', icon: 'profile' },
+  { to: '/hoa', label: 'Loại hoa', admin: true, icon: 'flowers' },
+  { to: '/tim-kiem', label: 'Tìm kiếm', icon: 'search' },
 ];
 
 export default function Layout() {
@@ -48,7 +49,7 @@ export default function Layout() {
           <span className={`hamburger ${menuOpen ? 'open' : ''}`} />
         </button>
         <div className="mobile-brand">
-          <span className="brand-icon">🌸</span>
+          <BrandMark className="brand-mark--sm" />
           <span>Hội Chơi Hoa</span>
         </div>
       </header>
@@ -64,14 +65,17 @@ export default function Layout() {
 
       <aside className={`sidebar ${menuOpen ? 'open' : ''}`}>
         <div className="brand desktop-only">
-          <span className="brand-icon">🌸</span>
-          <span>Hội Chơi Hoa</span>
+          <BrandMark />
+          <div className="brand-text">
+            <span className="brand-title">Hội Chơi Hoa</span>
+            <span className="brand-tagline">Vườn chibi của bạn</span>
+          </div>
         </div>
 
         <nav className="nav">
           {navLinks.map((item) => (
             <NavLink key={item.to} to={item.to} end={item.end}>
-              <span className="nav-icon" aria-hidden>{item.icon}</span>
+              <NavIcon name={item.icon} />
               {item.label}
             </NavLink>
           ))}
@@ -81,7 +85,7 @@ export default function Layout() {
           <div className="user-card">
             <p className="user-name">{user?.displayName}</p>
             <span className={`badge ${isAdmin ? 'badge-admin' : 'badge-member'}`}>
-              {isAdmin ? 'Admin' : 'Thành viên'}
+              {isAdmin ? 'Người chăm vườn' : 'Người chơi'}
             </span>
           </div>
           <button type="button" className="btn btn-secondary btn-block" onClick={handleLogout}>

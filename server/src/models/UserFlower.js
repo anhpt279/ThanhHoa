@@ -15,6 +15,8 @@ const userFlowerSchema = new mongoose.Schema(
 );
 
 userFlowerSchema.index({ userId: 1, type: 1 });
+userFlowerSchema.index({ userId: 1, type: 1, createdAt: -1 });
 userFlowerSchema.index({ flowerId: 1, type: 1 });
+userFlowerSchema.index({ userId: 1, type: 1, customName: 1 });
 
 export default mongoose.model('UserFlower', userFlowerSchema);

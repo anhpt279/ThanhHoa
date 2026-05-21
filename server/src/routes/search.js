@@ -3,6 +3,12 @@ import User from '../models/User.js';
 import Flower from '../models/Flower.js';
 import { escapeRegex } from '../utils/escapeRegex.js';
 import { authRequired } from '../middleware/auth.js';
+import {
+  buildFlowerSearchFilter,
+  buildUserSearchFilter,
+  flowerSearchSort,
+  userSearchSort,
+} from '../utils/searchQuery.js';
 
 const router = Router();
 const SEARCH_CACHE_SEC = 30;
@@ -31,12 +37,10 @@ router.get('/members', async (req, res) => {
 
     setSearchCache(res);
 
-    const term = escapeRegex(q.trim());
-    const users = await User.find({
-      displayName: { $regex: term, $options: 'i' },
-    })
+    const filter = buildUserSearchFilter(q);
+    const users = await User.find(filter)
       .select('displayName phone facebook zaloName lastUpdatedAt')
-      .sort({ displayName: 1 })
+      .sort(userSearchSort(filter))
       .limit(50)
       .lean();
 
@@ -56,12 +60,13 @@ async function resolveFlower({ q, flowerId }) {
   const exact = await findFlowerByName(term);
   if (exact) return exact;
 
-  return Flower.findOne({
-    flowerName: { $regex: escapeRegex(term), $options: 'i' },
-  })
+  const filter = buildFlowerSearchFilter(term);
+  const rows = await Flower.find(filter)
     .select('flowerName')
-    .sort({ flowerName: 1 })
+    .sort(flowerSearchSort(filter))
+    .limit(1)
     .lean();
+  return rows[0] ?? null;
 }
 
 router.get('/flowers', async (req, res) => {
